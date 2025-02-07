@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -61,6 +61,22 @@
             height: auto;
             border-radius: 5px;
         }
+        .pagination {
+            margin-top: 1rem;
+            text-align: center;
+        }
+        .pagination button {
+            padding: 0.5rem 1rem;
+            margin: 0 0.25rem;
+            cursor: pointer;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+        }
+        .pagination button.active {
+            background-color: #4CAF50;
+            color: white;
+            border: 1px solid #4CAF50;
+        }
     </style>
 </head>
 <body>
@@ -103,6 +119,8 @@
             </thead>
             <tbody></tbody>
         </table>
+
+        <div id="pagination" class="pagination"></div>
     </div>
 
    <script>
@@ -110,9 +128,12 @@
     const merchantTable = document.getElementById('merchantTable');
     const loading = document.getElementById('loading');
     const totalEntries = document.getElementById('total-entries');
+    const pagination = document.getElementById('pagination');
 
     let merchants = [];
     let users = [];
+    let currentPage = 1;
+    const entriesPerPage = 25;
 
     // Fetch offer data based on the mainid dynamically
     const fetchOfferData = async (mainid) => {
@@ -164,40 +185,8 @@
         if (filteredMerchants.length > 0) {
             totalEntries.textContent = `Total Entries: ${filteredMerchants.length}`;
             totalEntries.style.display = 'block';
-            const tbody = merchantTable.querySelector('tbody');
-            tbody.innerHTML = '';
-
-            for (const merchant of filteredMerchants) {
-                const offerData = merchant.mainid ? await fetchOfferData(merchant.mainid) : [];
-                const addedByUser = users.find(user => user.mobileNumber === merchant.mobileNumber);
-
-                const totalContent = offerData.length;
-                const totalCreated = offerData.filter(item => item.offermade).length;
-                const totalUploaded = offerData.filter(item => item.offerposted).length;
-
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${merchant.personName} ${merchant.lastName}</td>
-                    <td>${merchant.businessName}</td>
-                    <td>${merchant.businessType}</td>
-                    <td>${merchant.businessAddress}</td>
-                    <td>${merchant.operationHours}</td>
-                    <td>${merchant.yearsOfBusiness}</td>
-                    <td>${merchant.numberOfEmployees}</td>
-                    <td>${merchant.contactEmail}</td>
-                    <td>${merchant.contactPhoneNumber}</td>
-                    <td>${merchant.membershipPlan}</td>
-                    <td>${merchant.panTanImage ? `<a href="https://fieldteam.localite.services/api/${merchant.panTanImage}" target="_blank"><img src="https://fieldteam.localite.services/api/${merchant.panTanImage}" alt="PAN Image" class="image-thumbnail"></a>` : 'N/A'}</td>
-                    <td>${merchant.gstinImage ? `<a href="https://fieldteam.localite.services/api/${merchant.gstinImage}" target="_blank"><img src="https://fieldteam.localite.services/api/${merchant.gstinImage}" alt="GSTIN Image" class="image-thumbnail"></a>` : 'N/A'}</td>
-                    <td>${new Date(merchant.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</td>
-                    <td>${addedByUser ? addedByUser.contactPerson : 'Unknown'}</td>
-                    <td><a href="offerDetails.html?mainid=${merchant.mainid}" style="color: blue; text-decoration: underline;">${totalContent}</a></td>
-                    <td>${totalCreated}</td>
-                    <td>${totalUploaded}</td>
-                `;
-                tbody.appendChild(row);
-            }
-
+            renderTable(filteredMerchants, currentPage);
+            renderPagination(filteredMerchants);
             loading.style.display = 'none';
             merchantTable.style.display = 'table';
         } else {
@@ -205,6 +194,74 @@
             loading.textContent = 'No merchants found for the selected user.';
         }
     });
+
+    // Render table with pagination
+    const renderTable = async (filteredMerchants, page) => {
+        const tbody = merchantTable.querySelector('tbody');
+        tbody.innerHTML = '';
+
+        const start = (page - 1) * entriesPerPage;
+        const end = start + entriesPerPage;
+        const paginatedMerchants = filteredMerchants.slice(start, end);
+
+        for (const merchant of paginatedMerchants) {
+            const offerData = merchant.mainid ? await fetchOfferData(merchant.mainid) : [];
+            const addedByUser = users.find(user => user.mobileNumber === merchant.mobileNumber);
+
+            const totalContent = offerData.length;
+            const totalCreated = offerData.filter(item => item.offermade).length;
+            const totalUploaded = offerData.filter(item => item.offerposted).length;
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${merchant.personName} ${merchant.lastName}</td>
+                <td>${merchant.businessName}</td>
+                <td>${merchant.businessType}</td>
+                <td>${merchant.businessAddress}</td>
+                <td>${merchant.operationHours}</td>
+                <td>${merchant.yearsOfBusiness}</td>
+                <td>${merchant.numberOfEmployees}</td>
+                <td>${merchant.contactEmail}</td>
+                <td>${merchant.contactPhoneNumber}</td>
+                <td>${merchant.membershipPlan}</td>
+                <td>${merchant.panTanImage ? `<a href="https://fieldteam.localite.services/api/${merchant.panTanImage}" target="_blank"><img src="https://fieldteam.localite.services/api/${merchant.panTanImage}" alt="PAN Image" class="image-thumbnail"></a>` : 'N/A'}</td>
+                <td>${merchant.gstinImage ? `<a href="https://fieldteam.localite.services/api/${merchant.gstinImage}" target="_blank"><img src="https://fieldteam.localite.services/api/${merchant.gstinImage}" alt="GSTIN Image" class="image-thumbnail"></a>` : 'N/A'}</td>
+                <td>${new Date(merchant.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</td>
+                <td>${addedByUser ? addedByUser.contactPerson : 'Unknown'}</td>
+                <td><a href="offerDetails.html?mainid=${merchant.mainid}" style="color: blue; text-decoration: underline;">${totalContent}</a></td>
+                <td>${totalCreated}</td>
+                <td>${totalUploaded}</td>
+            `;
+            tbody.appendChild(row);
+        }
+    };
+
+    // Render pagination buttons
+    const renderPagination = (filteredMerchants) => {
+        const totalPages = Math.ceil(filteredMerchants.length / entriesPerPage);
+        pagination.innerHTML = '';
+
+        for (let i = 1; i <= totalPages; i++) {
+            const button = document.createElement('button');
+            button.textContent = i;
+            button.addEventListener('click', () => {
+                currentPage = i;
+                renderTable(filteredMerchants, currentPage);
+                updatePaginationButtons();
+            });
+            pagination.appendChild(button);
+        }
+
+        updatePaginationButtons();
+    };
+
+    // Update pagination buttons' active state
+    const updatePaginationButtons = () => {
+        const buttons = pagination.querySelectorAll('button');
+        buttons.forEach((button, index) => {
+            button.classList.toggle('active', index + 1 === currentPage);
+        });
+    };
 </script>
 
 </body>
