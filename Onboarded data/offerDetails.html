@@ -1,0 +1,129 @@
+<!DOCTYPE html> 
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offer Details</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+        header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            padding: 20px;
+        }
+        /* Grid layout for 3-in-1 row */
+        .offers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .offer-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #fff;
+            box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .offer-card h2 {
+            margin: 0 0 10px;
+            color: #4CAF50;
+            font-size: 1.2rem;
+        }
+        .offer-card p {
+            margin: 5px 0;
+            font-size: 0.9rem;
+        }
+        .offer-card img {
+            width: 100%;
+            height: 200px; /* Fixed height */
+            object-fit: cover; /* Ensures the image fills the space properly */
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .offers-grid {
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            }
+            .offer-card img {
+                height: 150px; /* Smaller height for mobile */
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Offer Details</h1>
+    </header>
+    <div class="container">
+        <div id="offerDetails" class="offers-grid">Loading...</div>
+    </div>
+
+    <script>
+        // Get mainid from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const mainid = urlParams.get('mainid');
+
+        // Fetch offer data
+        async function fetchOfferData() {
+            if (!mainid) {
+                document.getElementById('offerDetails').innerHTML = "<p>No offer data available.</p>";
+                return;
+            }
+
+            try {
+                const response = await fetch(`https://fieldteam.localite.services/api/getOfferDataByMainId/${mainid}`);
+                const data = await response.json();
+
+                if (!Array.isArray(data) || data.length === 0) {
+                    document.getElementById('offerDetails').innerHTML = "<p>No offers found.</p>";
+                    return;
+                }
+
+                let offerHTML = "";
+                data.forEach(offer => {
+                    offerHTML += `
+                        <div class="offer-card">
+                            <h2>${offer.title}</h2>
+                            <p><strong>Brand:</strong> ${offer.brand}</p>
+                            <p><strong>Price:</strong> ${offer.price}</p>
+                            <p><strong>Discount:</strong> ${offer.discountedPercentage}%</p>
+                            <p><strong>Location:</strong> ${offer.area}, ${offer.city}</p>
+                            <p><strong>Contact:</strong> ${offer.mobileNumber}</p>
+                            <p><strong>Offer Made:</strong> ${offer.offermade ? "Yes" : "No"}</p>
+                            <p><strong>Offer Posted:</strong> ${offer.offerposted ? "Yes" : "No"}</p>
+                           ${offer.image1 ? `<a href="https://fieldteam.localite.services/api/${offer.image1}" target="_blank">
+                    <img src="https://fieldteam.localite.services/api/${offer.image1}" alt="Offer Image 1">
+                 </a>` : ""}
+                           ${offer.image2 ? `<a href="https://fieldteam.localite.services/api/${offer.image2}" target="_blank">
+                    <img src="https://fieldteam.localite.services/api/${offer.image2}" alt="Offer Image 2">
+                 </a>` : ""}
+
+                        </div>
+                    `;
+                });
+
+                document.getElementById('offerDetails').innerHTML = offerHTML;
+            } catch (error) {
+                console.error("Error fetching offer data:", error);
+                document.getElementById('offerDetails').innerHTML = "<p>Failed to load offers.</p>";
+            }
+        }
+
+        fetchOfferData();
+    </script>
+</body>
+</html>

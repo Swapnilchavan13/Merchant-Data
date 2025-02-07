@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Content</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+        .container {
+            max-width: 100%;
+            margin: 2rem auto;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0.7, 0.9, 0.4, 0.1);
+        }
+        .brand-select {
+            margin-bottom: 1rem;
+            justify-content: center;
+        }
+        .brand-select select {
+            padding: 0.5rem;
+            font-size: 1rem;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            width: 200px;
+        }
+        .offer-card {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            justify-content: space-between;
+            margin-top: 2rem;
+        }
+        .offer-card .card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(65, 235, 3, 0.3);
+            margin-bottom: 1rem;
+            padding: 1rem;
+            box-sizing: border-box;
+            transition: transform 0.3s ease;
+        }
+        .offer-card .card:hover {
+            transform: translateY(-5px);
+        }
+        .card img {
+            width: 120px;
+            height: 120px;
+            border-radius: 5px;
+        }
+        .card h3 {
+            font-size: 1.2rem;
+            margin: 1rem 0;
+        }
+        .card p {
+            font-size: 1rem;
+            color: #555;
+        }
+        .card .price {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        #editModal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border: 1px solid #ddd;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        #editModal.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>All Offers</h1>
+    </header>
+
+    <div class="brand-select">
+        <label for="brandSelect"></label>
+        <select id="brandSelect">
+            <option value="">-- Select Brand --</option>
+            <option value="all">All</option>
+        </select>
+    </div>
+    <div class="container">
+        <div id="offers" class="offer-card"></div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal">
+        <h3>Edit Offer</h3>
+        <form id="editForm">
+            <label for="offermade">Offer Made:</label>
+            <select id="offermade" name="offermade">
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+            </select>
+            <br><br>
+            <label for="offerposted">Offer Posted:</label>
+            <select id="offerposted" name="offerposted">
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+            </select>
+            <br><br>
+            <button type="submit">Save</button>
+            <button type="button" onclick="closeModal()">Cancel</button>
+        </form>
+    </div>
+
+    <script>
+        const brandSelect = document.getElementById('brandSelect');
+        const offersContainer = document.getElementById('offers');
+        const editModal = document.getElementById('editModal');
+        let offers = [];
+        let currentEditingId = null;
+
+        function fetchOffers() {
+            fetch('https://fieldteam.localite.services/api/getOfferData')
+                .then(response => response.json())
+                .then(data => {
+                    offers = data;
+                    populateBrandDropdown(offers);
+                    displayOffers(offers);
+                })
+                .catch(error => console.error('Error fetching offers:', error));
+        }
+
+        // Call fetchOffers on page load
+        fetchOffers();
+
+        // Populate the brand dropdown with unique brand names
+        function populateBrandDropdown(offers) {
+            const uniqueBrands = [...new Set(offers.map(offer => offer.brand))];
+            brandSelect.innerHTML = '<option value="">-- Select Brand --</option><option value="all">All</option>';
+            uniqueBrands.forEach(brand => {
+                const option = document.createElement('option');
+                option.value = brand;
+                option.textContent = brand;
+                brandSelect.appendChild(option);
+            });
+        }
+
+        // Display offers based on the selected brand
+        function displayOffers(filteredOffers) {
+            offersContainer.innerHTML = '';
+            filteredOffers.forEach(offer => {
+                const card = createOfferCard(offer);
+                offersContainer.appendChild(card);
+            });
+        }
+
+        // Create a card for an offer
+        function createOfferCard(offer) {
+            const card = document.createElement('div');
+            card.classList.add('card');
+            card.setAttribute('data-id', offer._id); // Add a unique identifier
+            card.innerHTML = `
+                <p><strong>Brand:</strong> ${offer.brand}</p>
+                <a href="https://fieldteam.localite.services/api/${offer.image1}" target="_blank">
+                    <img src="https://fieldteam.localite.services/api/${offer.image1}" alt="${offer.title}">
+                </a>
+                <a href="https://fieldteam.localite.services/api/${offer.image2}" target="_blank">
+                    <img src="https://fieldteam.localite.services/api/${offer.image2}" alt="${offer.title}">
+                </a>
+                <h3>${offer.title}</h3>
+                <p><strong>Headline:</strong> ${offer.headline}</p>
+                <p>${offer.excerptDescription}</p>
+                <p><strong>Actual Price:</strong> ₹${offer.price} <span style="color: #f44336;">(${offer.discountedPercentage}% off)</span></p>
+                <p class="price">Final Price: ₹${(parseFloat(offer.price) * (1 - parseFloat(offer.discountedPercentage) / 100)).toFixed(2)}</p>
+                <p class="offermade"><strong>Offer Creative Made:</strong> ${offer.offermade ? 'Yes' : 'No'}</p>
+                <p class="offerposted"><strong>Offer Creative Posted:</strong> ${offer.offerposted ? 'Yes' : 'No'}</p>
+                <button onclick='openEditModal(${JSON.stringify(offer)})'>Edit</button>
+            `;
+            return card;
+        }
+
+        // Filter offers by selected brand
+        brandSelect.addEventListener('change', () => {
+            const selectedBrand = brandSelect.value;
+            if (selectedBrand === 'all' || selectedBrand === '') {
+                displayOffers(offers);
+            } else {
+                const filteredOffers = offers.filter(offer => offer.brand === selectedBrand);
+                displayOffers(filteredOffers);
+            }
+        });
+
+        // Open Edit Modal
+        function openEditModal(offer) {
+            currentEditingId = offer._id;
+            document.getElementById('offermade').value = offer.offermade.toString();
+            document.getElementById('offerposted').value = offer.offerposted.toString();
+            editModal.classList.add('active');
+        }
+
+        // Close Edit Modal
+        function closeModal() {
+            editModal.classList.remove('active');
+            currentEditingId = null;
+        }
+
+      // Handle Edit Form Submission
+document.getElementById('editForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const offermade = document.getElementById('offermade').checked;  // Use .checked for toggle inputs
+    const offerposted = document.getElementById('offerposted').checked;  // Use .checked for toggle inputs
+
+    // API call to save the data
+    fetch(`https://fieldteam.localite.services/api/editOfferData/${currentEditingId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ offermade, offerposted }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update the offer locally
+            const offerIndex = offers.findIndex(offer => offer._id === currentEditingId);
+            if (offerIndex !== -1) {
+                offers[offerIndex].offermade = offermade;
+                offers[offerIndex].offerposted = offerposted;
+
+                // Update the UI directly
+                const updatedCard = document.querySelector(`[data-id="${currentEditingId}"]`);
+                updatedCard.querySelector('.offermade').textContent = `Offer Creative Made: ${offermade ? 'Yes' : 'No'}`;
+                updatedCard.querySelector('.offerposted').textContent = `Offer Creative Posted: ${offerposted ? 'Yes' : 'No'}`;
+
+                // Update the toggle button states
+                updatedCard.querySelector('.offermade-toggle').checked = offermade;
+                updatedCard.querySelector('.offerposted-toggle').checked = offerposted;
+
+                // Optionally, show a success message to the user
+                alert('Offer updated successfully!');
+            }
+        } else {
+            alert(data.message || 'Failed to update the offer.');
+        }
+        closeModal();
+    })
+    .catch(error => {
+        console.error('Error updating offer:', error);
+        alert('An error occurred while updating the offer.');
+    });
+});
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,211 @@
+<!DOCTYPE html> 
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onboarded Merchant Details</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+        header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+        #userSelect{
+            margin-top: 5px;
+            height: 40px;
+        }
+       
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 0.8rem;
+            text-align: left;
+        }
+        table th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        table tr:hover {
+            background-color: #ddd;
+        }
+        .loading {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #555;
+        }
+        .user-select {
+            margin-bottom: 1rem;
+        }
+        .image-cell img {
+            max-width: 100px;
+            height: auto;
+            border-radius: 5px;
+        }
+        .image-thumbnail {
+            width:80px;
+            height: auto;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Onboarded Merchant Details</h1>
+    </header>
+    <div class="container">
+        <div id="loading" class="loading">Loading data...</div>
+        <div class="user-select">
+            <label for="userSelect">Select User: </label>
+            <select id="userSelect">
+                <option value="">--Select User--</option>
+                <option value="all">All</option>
+            </select>
+        </div>
+
+        <div id="total-entries" class="total-entries"></div>
+
+        <table id="merchantTable" style="display: none;">
+            <thead>
+                <tr>
+                    <th>Person Name</th>
+                    <th>Business Name</th>
+                    <th>Business Type</th>
+                    <th>Address</th>
+                    <th>Operation Hours</th>
+                    <th>Years in Business</th>
+                    <th>Employees</th>
+                    <th>Contact Email</th>
+                    <th>Contact Phone</th>
+                    <th>Membership Plan</th>
+                    <th>PAN Image</th>
+                    <th>GSTIN Image</th>
+                    <th>Time</th>
+                    <th>Added By</th>
+                    <th>Total Content Uploaded</th>
+                    <th>Total Post Created</th>
+                    <th>Total Post Uploaded</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+   <script>
+    const userSelect = document.getElementById('userSelect');
+    const merchantTable = document.getElementById('merchantTable');
+    const loading = document.getElementById('loading');
+    const totalEntries = document.getElementById('total-entries');
+
+    let merchants = [];
+    let users = [];
+
+    // Fetch offer data based on the mainid dynamically
+    const fetchOfferData = async (mainid) => {
+        try {
+            const response = await fetch(`https://fieldteam.localite.services/api/getOfferDataByMainId/${mainid}`);
+            const data = await response.json();
+            return Array.isArray(data) ? data : [];
+        } catch (error) {
+            console.error(`Error fetching offer data for ID ${mainid}:`, error);
+            return [];
+        }
+    };
+
+    // Fetch users
+    fetch('https://fieldteam.localite.services/api/registrations')
+        .then(response => response.json())
+        .then(data => {
+            users = data;
+            users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.mobileNumber;
+                option.textContent = user.contactPerson;
+                userSelect.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching users:', error);
+            loading.textContent = 'Failed to load user data.';
+        });
+
+    // Fetch merchants
+    fetch('https://fieldteam.localite.services/api/getmerchants')
+        .then(response => response.json())
+        .then(data => {
+            merchants = data.merchants.reverse();
+            userSelect.value = "all"; // Set default selection to "All"
+            userSelect.dispatchEvent(new Event('change')); // Trigger event to load data immediately
+        })
+        .catch(error => {
+            console.error('Error fetching merchants:', error);
+            loading.textContent = 'Failed to load merchant data.';
+        });
+
+    // Event listener for user selection
+    userSelect.addEventListener('change', async () => {
+        const selectedUser = userSelect.value;
+        let filteredMerchants = selectedUser === "all" ? merchants : merchants.filter(m => m.mobileNumber === selectedUser);
+
+        if (filteredMerchants.length > 0) {
+            totalEntries.textContent = `Total Entries: ${filteredMerchants.length}`;
+            totalEntries.style.display = 'block';
+            const tbody = merchantTable.querySelector('tbody');
+            tbody.innerHTML = '';
+
+            for (const merchant of filteredMerchants) {
+                const offerData = merchant.mainid ? await fetchOfferData(merchant.mainid) : [];
+                const addedByUser = users.find(user => user.mobileNumber === merchant.mobileNumber);
+
+                const totalContent = offerData.length;
+                const totalCreated = offerData.filter(item => item.offermade).length;
+                const totalUploaded = offerData.filter(item => item.offerposted).length;
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${merchant.personName} ${merchant.lastName}</td>
+                    <td>${merchant.businessName}</td>
+                    <td>${merchant.businessType}</td>
+                    <td>${merchant.businessAddress}</td>
+                    <td>${merchant.operationHours}</td>
+                    <td>${merchant.yearsOfBusiness}</td>
+                    <td>${merchant.numberOfEmployees}</td>
+                    <td>${merchant.contactEmail}</td>
+                    <td>${merchant.contactPhoneNumber}</td>
+                    <td>${merchant.membershipPlan}</td>
+                    <td>${merchant.panTanImage ? `<a href="https://fieldteam.localite.services/api/${merchant.panTanImage}" target="_blank"><img src="https://fieldteam.localite.services/api/${merchant.panTanImage}" alt="PAN Image" class="image-thumbnail"></a>` : 'N/A'}</td>
+                    <td>${merchant.gstinImage ? `<a href="https://fieldteam.localite.services/api/${merchant.gstinImage}" target="_blank"><img src="https://fieldteam.localite.services/api/${merchant.gstinImage}" alt="GSTIN Image" class="image-thumbnail"></a>` : 'N/A'}</td>
+                    <td>${new Date(merchant.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</td>
+                    <td>${addedByUser ? addedByUser.contactPerson : 'Unknown'}</td>
+                    <td><a href="offerDetails.html?mainid=${merchant.mainid}" style="color: blue; text-decoration: underline;">${totalContent}</a></td>
+                    <td>${totalCreated}</td>
+                    <td>${totalUploaded}</td>
+                `;
+                tbody.appendChild(row);
+            }
+
+            loading.style.display = 'none';
+            merchantTable.style.display = 'table';
+        } else {
+            totalEntries.style.display = 'none';
+            loading.textContent = 'No merchants found for the selected user.';
+        }
+    });
+</script>
+
+</body>
+</html>

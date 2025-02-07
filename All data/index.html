@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Merchant Data</title>
+    <style>
+        .container {
+            width: 90%;
+            margin: 0 auto;
+            font-family: Arial, sans-serif;
+        }
+
+        .title {
+            text-align: center;
+            color: #333;
+        }
+
+        .user-selection {
+            margin: 20px 0;
+        }
+
+        .user-selection label {
+            font-weight: bold;
+        }
+
+        .user-selection select {
+            margin-left: 10px;
+            padding: 5px;
+        }
+
+        .total-entries {
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        .merchant-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .merchant-table th, .merchant-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .merchant-table th {
+            background-color: #f4f4f4;
+            font-weight: bold;
+        }
+
+        .image-thumbnail {
+            max-width: 100px;
+            max-height: 100px;
+            cursor: pointer;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #777;
+            margin-top: 20px;
+        }
+
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            width: 30%;
+            overflow-y: auto;
+        }
+
+        .popup h2 {
+            margin-top: 0;
+        }
+
+        .popup .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">All Merchant Data</h1>
+
+        <div class="user-selection">
+            <label for="user-select">Select User:</label>
+            <select id="user-select">
+                <option value="">-- Select a User --</option>
+            </select>
+            <button id="view-all-btn">View All Entries</button>
+        </div>
+
+        <div id="total-entries" class="total-entries"></div>
+
+        <table id="merchant-table" class="merchant-table" style="display: none;">
+            <thead>
+                <tr>
+                    <th>Name of Business</th>
+                    <th>City</th>
+                    <th>Area</th>
+                    <th>Category</th>
+                    <th>Subcategory</th>
+                    <th>Added By</th>
+                    <th>Time</th>
+
+
+                </tr>
+            </thead>
+            <tbody id="merchant-table-body"></tbody>
+        </table>
+
+        <p id="no-data" class="no-data">Please select a user to view merchant data.</p>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+    <div class="popup" id="popup">
+        <span class="close-btn" id="close-popup">&times;</span>
+        <h2>Merchant Details</h2>
+        <div id="popup-content"></div>
+    </div>
+
+    <script>
+        const userSelect = document.getElementById('user-select');
+        const totalEntries = document.getElementById('total-entries');
+        const merchantTable = document.getElementById('merchant-table');
+        const merchantTableBody = document.getElementById('merchant-table-body');
+        const noDataMessage = document.getElementById('no-data');
+        const popup = document.getElementById('popup');
+        const popupContent = document.getElementById('popup-content');
+        const overlay = document.getElementById('overlay');
+        const closePopup = document.getElementById('close-popup');
+        const viewAllBtn = document.getElementById('view-all-btn');
+
+        let merchants = [];
+let users = [];
+
+// Fetch users
+fetch('https://fieldteam.localite.services/api/registrations')
+    .then(response => response.json())
+    .then(data => {
+        users = data;
+        users.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.mobileNumber;
+            option.textContent = user.contactPerson;
+            userSelect.appendChild(option);
+        });
+    })
+    .catch(error => console.error('Error fetching users:', error));
+
+// Fetch merchants
+fetch('https://fieldteam.localite.services/api/getmerchantsdata')
+    .then(response => response.json())
+    .then(data => {
+        merchants = data.reverse();
+    })
+    .catch(error => console.error('Error fetching merchants:', error));
+
+// Handle user selection
+userSelect.addEventListener('change', () => {
+    displayMerchants(userSelect.value);
+});
+
+viewAllBtn.addEventListener('click', () => {
+    displayMerchants('');
+});
+
+function displayMerchants(userMobile) {
+    const filteredMerchants = userMobile
+        ? merchants.filter(merchant => merchant.mobileNumber === userMobile)
+        : merchants;
+
+    totalEntries.textContent = `Total Entries: ${filteredMerchants.length}`;
+    totalEntries.style.display = 'block';
+
+    if (filteredMerchants.length > 0) {
+        noDataMessage.style.display = 'none';
+        merchantTable.style.display = 'table';
+        merchantTableBody.innerHTML = '';
+
+        filteredMerchants.forEach(merchant => {
+            const user = users.find(u => u.mobileNumber === merchant.mobileNumber);
+            const addedBy = user ? user.contactPerson : 'Unknown';
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><a href="#" class="business-name" data-id="${merchant._id}">${merchant.nameOfBusiness}</a></td>
+                <td>${merchant.city}</td>
+                <td>${merchant.area}</td>
+                <td>${merchant.category}</td>
+                <td>${merchant.subCategory}</td>
+                <td>${addedBy}</td>
+                <td>${new Date(merchant.updatedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</td>
+
+            `;
+            merchantTableBody.appendChild(row);
+        });
+
+        document.querySelectorAll('.business-name').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const merchantId = e.target.getAttribute('data-id');
+                const merchant = merchants.find(m => m._id === merchantId);
+                showPopup(merchant);
+            });
+        });
+    } else {
+        noDataMessage.textContent = 'No merchants found.';
+        noDataMessage.style.display = 'block';
+        merchantTable.style.display = 'none';
+    }
+}
+
+function showPopup(merchant) {
+    const user = users.find(u => u.mobileNumber === merchant.mobileNumber);
+    const addedBy = user ? user.contactPerson : 'Unknown';
+
+    popupContent.innerHTML = `
+        <p><strong>Name of Business:</strong> ${merchant.nameOfBusiness}</p>
+        <p><strong>City:</strong> ${merchant.city}</p>
+        <p><strong>Area:</strong> ${merchant.area}</p>
+        <p><strong>Category:</strong> ${merchant.category}</p>
+        <p><strong>Subcategory:</strong> ${merchant.subCategory}</p>
+        <p><strong>Contact Number:</strong> ${merchant.contactNo}</p>
+        <p><strong>Contact Status:</strong> ${merchant.contactStatus}</p>
+        <p><strong>Remark:</strong> ${merchant.additionalOption}</p>
+        <p><strong>Shop Front Image:</strong> 
+            <br/>${
+            merchant.shopFrontImage
+                ? `<img class="image-thumbnail" src="https://fieldteam.localite.services/api${merchant.shopFrontImage}" onclick="window.open('https://fieldteam.localite.services/api${merchant.shopFrontImage}', '_blank')" />`
+                : 'N/A'
+        }</p>
+        <p><strong>Street Image:</strong> <br/>${
+            merchant.streetImage
+                ? `<img class="image-thumbnail" src="https://fieldteam.localite.services/api${merchant.streetImage}" onclick="window.open('https://fieldteam.localite.services/api${merchant.streetImage}', '_blank')" />`
+                : 'N/A'
+        }</p>
+        <p><strong>Added By:</strong> ${addedBy}</p>
+        <p><strong>Updated At:</strong> ${new Date(merchant.updatedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
+    `;
+    popup.style.display = 'block';
+    overlay.style.display = 'block';
+}
+
+closePopup.addEventListener('click', () => {
+    popup.style.display = 'none';
+    overlay.style.display = 'none';
+});
+
+overlay.addEventListener('click', () => {
+    popup.style.display = 'none';
+    overlay.style.display = 'none';
+});
+    </script>
+</body>
+</html>

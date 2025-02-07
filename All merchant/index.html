@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Merchant Data</title>
+    <style>
+        /* Same styles as before */
+        .container {
+            width: 90%;
+            margin: 0 auto;
+            font-family: Arial, sans-serif;
+        }
+
+        .title {
+            text-align: center;
+            color: #333;
+        }
+
+        .user-selection {
+            margin: 20px 0;
+        }
+
+        .user-selection label {
+            font-weight: bold;
+        }
+
+        .user-selection select {
+            margin-left: 10px;
+            padding: 5px;
+        }
+
+        .total-entries {
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        .merchant-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .merchant-table th, .merchant-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .merchant-table th {
+            background-color: #f4f4f4;
+            font-weight: bold;
+        }
+
+        .image-thumbnail {
+            max-width: 100px;
+            max-height: 100px;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #777;
+            margin-top: 20px;
+        }
+
+        .pagination {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .pagination button {
+            padding: 10px;
+            margin: 0 5px;
+            cursor: pointer;
+        }
+
+        .pagination .selected {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .download-button {
+            margin: 20px 0;
+            text-align: right;
+        }
+
+        .download-button button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">All Merchant Data</h1>
+
+        <div class="user-selection">
+            <label for="user-select">Select User:</label>
+            <select id="user-select">
+                <option value="">-- Select a User --</option>
+                <option value="all">All</option>
+            </select>
+        </div>
+
+        <div class="user-selection">
+            <label for="date-select">Select Date:</label>
+            <select id="date-select">
+                <option value="">-- Select a Date --</option>
+            </select>
+        </div>
+
+        <div class="user-selection">
+            <label for="owner-available-filter">Owner Available:</label>
+            <select id="owner-available-filter">
+                <option value="">-- All --</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+            </select>
+
+            <label for="contact-status-filter">Contact Status:</label>
+            <select id="contact-status-filter">
+                <option value="">-- All --</option>
+                <option value="Contact again">Contact again</option>
+                <option value="Onboarded">Onboarded</option>
+                <option value="Not interested">Not interested</option>
+            </select>
+
+            <label for="action-filter">Action:</label>
+            <select id="action-filter">
+                <option value="">-- All --</option>
+                <option value="Physically visit again">Physically visit again</option>
+                <option value="Send details digitally">Send details digitally</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+
+        <div id="total-entries" class="total-entries"></div>
+
+        <div class="download-button">
+            <button id="download-excel">Download Excel</button>
+        </div>
+
+        <table id="merchant-table" class="merchant-table" style="display: none;">
+            <thead>
+                <tr>
+                    <th>Name of Business</th>
+                    <th>City</th>
+                    <th>Area</th>
+                    <th>Category</th>
+                    <th>Subcategory</th>
+                    <th>Contact No</th>
+                    <th>Address</th>
+                    <th>Owner Available</th>
+                    <th>Shop Front Image</th>
+                    <th>Street Image</th>
+                    <th>Contact Status</th>
+                    <th>Action</th>
+                    <th>Data Added By</th>
+                    <th>Data Added Time (IST)</th>
+                </tr>
+            </thead>
+            <tbody id="merchant-table-body"></tbody>
+        </table>
+
+        <p id="no-data" class="no-data">Please select a user to view merchant data.</p>
+
+        <div class="pagination" id="pagination-controls"></div>
+    </div>
+
+    <script>
+        const userSelect = document.getElementById('user-select');
+        const ownerAvailableFilter = document.getElementById('owner-available-filter');
+        const contactStatusFilter = document.getElementById('contact-status-filter');
+        const actionFilter = document.getElementById('action-filter');
+        const totalEntries = document.getElementById('total-entries');
+        const merchantTable = document.getElementById('merchant-table');
+        const merchantTableBody = document.getElementById('merchant-table-body');
+        const noDataMessage = document.getElementById('no-data');
+        const paginationControls = document.getElementById('pagination-controls');
+        const dateSelect = document.getElementById('date-select');
+        const downloadExcelButton = document.getElementById('download-excel');
+
+
+        let users = [];
+        let merchants = [];
+        let currentPage = 1;
+        const entriesPerPage = 40;
+
+        // Populate the date dropdown with the latest 10 unique dates
+function populateDateDropdown() {
+    const uniqueDates = [...new Set(merchants.map(merchant => new Date(merchant.updatedAt).toLocaleDateString('en-IN')))];
+    const latestDates = uniqueDates.slice(0, 10);
+    
+    dateSelect.innerHTML = '<option value="">-- Select a Date --</option>';
+    latestDates.forEach(date => {
+        const option = document.createElement('option');
+        option.value = date;
+        option.textContent = date;
+        dateSelect.appendChild(option);
+    });
+}
+
+        // Fetch users
+        fetch('https://fieldteam.localite.services/api/registrations')
+            .then(response => response.json())
+            .then(data => {
+                users = data;
+                users.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.mobileNumber;
+                    option.textContent = user.contactPerson;
+                    userSelect.appendChild(option);
+                });
+            })
+            .catch(error => console.error('Error fetching users:', error));
+
+        // Fetch merchants
+        fetch('https://fieldteam.localite.services/api/getmerchantsdata')
+            .then(response => response.json())
+            .then(data => {
+                merchants = data.reverse();
+            })
+            .catch(error => console.error('Error fetching merchants:', error));
+
+       // Update the applyFilters function to include the date filter
+function applyFilters() {
+    const selectedUser = userSelect.value;
+    const selectedOwnerAvailable = ownerAvailableFilter.value;
+    const selectedContactStatus = contactStatusFilter.value;
+    const selectedAction = actionFilter.value;
+    const selectedDate = dateSelect.value;
+
+    let filteredMerchants = merchants;
+
+    if (selectedDate) {
+        filteredMerchants = filteredMerchants.filter(merchant => new Date(merchant.updatedAt).toLocaleDateString('en-IN') === selectedDate);
+    }
+
+    if (selectedUser && selectedUser !== 'all') {
+        filteredMerchants = filteredMerchants.filter(merchant => merchant.mobileNumber === selectedUser);
+    }
+    if (selectedOwnerAvailable) {
+        filteredMerchants = filteredMerchants.filter(merchant => merchant.decisionMakerAvailable === selectedOwnerAvailable);
+    }
+    if (selectedContactStatus) {
+        filteredMerchants = filteredMerchants.filter(merchant => merchant.contactStatus === selectedContactStatus);
+    }
+    if (selectedAction) {
+        filteredMerchants = filteredMerchants.filter(merchant => merchant.additionalOption === selectedAction);
+    }
+
+
+    if (filteredMerchants.length > 0) {
+        totalEntries.textContent = `Total Entries: ${filteredMerchants.length}`;
+        totalEntries.style.display = 'block';
+        noDataMessage.style.display = 'none';
+        merchantTable.style.display = 'table';
+        paginateAndDisplay(filteredMerchants);
+    } else {
+        totalEntries.style.display = 'none';
+        noDataMessage.textContent = 'No merchants found for the selected filters.';
+        noDataMessage.style.display = 'block';
+        merchantTable.style.display = 'none';
+    }
+}
+
+// Populate the date dropdown when merchant data is loaded
+fetch('https://fieldteam.localite.services/api/getmerchantsdata')
+    .then(response => response.json())
+    .then(data => {
+        merchants = data.reverse();
+        populateDateDropdown();
+    })
+    .catch(error => console.error('Error fetching merchants:', error));
+
+        userSelect.addEventListener('change', applyFilters);
+        ownerAvailableFilter.addEventListener('change', applyFilters);
+        contactStatusFilter.addEventListener('change', applyFilters);
+        actionFilter.addEventListener('change', applyFilters);
+        dateSelect.addEventListener('change', applyFilters);
+
+
+        // Paginate and display merchants
+        function paginateAndDisplay(filteredMerchants) {
+            const totalPages = Math.ceil(filteredMerchants.length / entriesPerPage);
+            const startIndex = (currentPage - 1) * entriesPerPage;
+            const endIndex = startIndex + entriesPerPage;
+            const currentPageData = filteredMerchants.slice(startIndex, endIndex);
+
+            merchantTableBody.innerHTML = '';
+            currentPageData.forEach(merchant => {
+                // Find the user who added this merchant's data
+                const user = users.find(user => user.mobileNumber === merchant.mobileNumber);
+                const addedBy = user ? user.contactPerson : 'Unknown User';
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${merchant.nameOfBusiness}</td>
+                    <td>${merchant.city}</td>
+                    <td>${merchant.area}</td>
+                    <td>${merchant.category}</td>
+                    <td>${merchant.subCategory}</td>
+                    <td>${merchant.contactNo}</td>
+                    <td>${merchant.address}</td>
+                    <td>${merchant.decisionMakerAvailable}</td>
+                    <td>
+                        ${merchant.shopFrontImage
+                            ? `<img class="image-thumbnail" src="https://fieldteam.localite.services/api${merchant.shopFrontImage}" alt="Shop Front" onclick="window.open('https://fieldteam.localite.services/api${merchant.shopFrontImage}', '_blank')" />`
+                            : 'N/A'
+                        }
+                    </td>
+                    <td>
+                        ${merchant.streetImage
+                            ? `<img class="image-thumbnail" src="https://fieldteam.localite.services/api${merchant.streetImage}" alt="Street" onclick="window.open('https://fieldteam.localite.services/api${merchant.streetImage}', '_blank')" />`
+                            : 'N/A'
+                        }
+                    </td>
+                    <td>${merchant.contactStatus || 'N/A'}</td>
+                    <td>${merchant.additionalOption || 'N/A'}</td>
+                    <td>${addedBy}</td>
+                    <td>${new Date(merchant.updatedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</td>
+                `;
+                merchantTableBody.appendChild(row);
+            });
+
+            renderPaginationControls(totalPages);
+        }
+
+        // Render pagination controls
+        function renderPaginationControls(totalPages) {
+            paginationControls.innerHTML = '';
+
+            const prevButton = document.createElement('button');
+            prevButton.textContent = 'Previous';
+            prevButton.disabled = currentPage === 1;
+            prevButton.addEventListener('click', () => changePage(currentPage - 1));
+            paginationControls.appendChild(prevButton);
+
+            for (let i = 1; i <= totalPages; i++) {
+                const pageButton = document.createElement('button');
+                pageButton.textContent = i;
+                pageButton.classList.toggle('selected', i === currentPage);
+                pageButton.addEventListener('click', () => changePage(i));
+                paginationControls.appendChild(pageButton);
+            }
+
+            const nextButton = document.createElement('button');
+            nextButton.textContent = 'Next';
+            nextButton.disabled = currentPage === totalPages;
+            nextButton.addEventListener('click', () => changePage(currentPage + 1));
+            paginationControls.appendChild(nextButton);
+        }
+
+        // Change page
+        function changePage(pageNumber) {
+            currentPage = pageNumber;
+            userSelect.dispatchEvent(new Event('change'));
+        }
+     // Download table as Excel
+     downloadExcelButton.addEventListener('click', () => {
+            const tableData = merchantTable.outerHTML;
+            const blob = new Blob([tableData], { type: 'application/vnd.ms-excel' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'merchant_data.xls';
+            link.click();
+        });
+    </script>
+</body>
+</html>
