@@ -115,6 +115,8 @@
                     <th>Total Content Uploaded</th>
                     <th>Total Post Created</th>
                     <th>Total Post Uploaded</th>
+                    <th>Logo</th>
+
                 </tr>
             </thead>
             <tbody></tbody>
@@ -231,6 +233,8 @@
                 <td><a href="offerDetails.html?mainid=${merchant.mainid}" style="color: blue; text-decoration: underline;">${totalContent}</a></td>
                 <td>${totalCreated}</td>
                 <td>${totalUploaded}</td>
+                <td>${merchant.profileImage ? `<a href="https://fieldteam.localite.services/api/${merchant.profileImage}" target="_blank"><img src="https://fieldteam.localite.services/api/${merchant.profileImage}" alt="PAN Image" class="image-thumbnail"></a>` : 'N/A'}</td>
+
             `;
             tbody.appendChild(row);
         }
