@@ -171,28 +171,30 @@
 
         // Create a card for an offer
         function createOfferCard(offer) {
-            const card = document.createElement('div');
-            card.classList.add('card');
-            card.setAttribute('data-id', offer._id); // Add a unique identifier
-            card.innerHTML = `
-                <p><strong>Brand:</strong> ${offer.brand}</p>
-                <a href="https://fieldteam.localite.services/api/${offer.image1}" target="_blank">
-                    <img src="https://fieldteam.localite.services/api/${offer.image1}" alt="${offer.title}">
-                </a>
-                <a href="https://fieldteam.localite.services/api/${offer.image2}" target="_blank">
-                    <img src="https://fieldteam.localite.services/api/${offer.image2}" alt="${offer.title}">
-                </a>
-                <h3>${offer.title}</h3>
-                <p><strong>Headline:</strong> ${offer.headline}</p>
-                <p>${offer.excerptDescription}</p>
-                <p><strong>Actual Price:</strong> ₹${offer.price} <span style="color: #f44336;">(${offer.discountedPercentage}% off)</span></p>
-                <p class="price">Final Price: ₹${(parseFloat(offer.price) * (1 - parseFloat(offer.discountedPercentage) / 100)).toFixed(2)}</p>
-                <p class="offermade"><strong>Offer Creative Made:</strong> ${offer.offermade ? 'Yes' : 'No'}</p>
-                <p class="offerposted"><strong>Offer Creative Posted:</strong> ${offer.offerposted ? 'Yes' : 'No'}</p>
-                <button onclick='openEditModal(${JSON.stringify(offer)})'>Edit</button>
-            `;
-            return card;
-        }
+    const card = document.createElement('div');
+    card.classList.add('card');
+    card.setAttribute('data-id', offer._id); // Add a unique identifier
+    card.innerHTML = `
+        <p><strong>Brand:</strong> ${offer.brand}</p>
+        <a href="https://fieldteam.localite.services/api/${offer.image1}" target="_blank">
+            <img src="https://fieldteam.localite.services/api/${offer.image1}" alt="${offer.title}">
+        </a>
+        <a href="https://fieldteam.localite.services/api/${offer.image2}" target="_blank">
+            <img src="https://fieldteam.localite.services/api/${offer.image2}" alt="${offer.title}">
+        </a>
+        <h3>${offer.title}</h3>
+        <p><strong>Headline:</strong> ${offer.headline}</p>
+        <p>${offer.excerptDescription}</p>
+        <p><strong>Actual Price:</strong> ₹${offer.price} <span style="color: #f44336;">(${offer.discountedPercentage}% off)</span></p>
+        <p class="price">Final Price: ₹${(parseFloat(offer.price) * (1 - parseFloat(offer.discountedPercentage) / 100)).toFixed(2)}</p>
+        <p class="offermade"><strong>Offer Creative Made:</strong> ${offer.offermade ? 'Yes' : 'No'}</p>
+        <p class="offerposted"><strong>Offer Creative Posted:</strong> ${offer.offerposted ? 'Yes' : 'No'}</p>
+        <button onclick='openEditModal("${offer._id}", ${offer.offermade}, ${offer.offerposted})'>Edit</button>
+
+    `;
+    return card;
+}
+
 
         // Filter offers by selected brand
         brandSelect.addEventListener('change', () => {
@@ -205,13 +207,16 @@
             }
         });
 
-        // Open Edit Modal
-        function openEditModal(offer) {
-            currentEditingId = offer._id;
-            document.getElementById('offermade').value = offer.offermade.toString();
-            document.getElementById('offerposted').value = offer.offerposted.toString();
-            editModal.classList.add('active');
-        }
+
+
+        function openEditModal(id, offermade, offerposted) {
+    currentEditingId = id;
+    document.getElementById('offermade').value = offermade.toString();
+    document.getElementById('offerposted').value = offerposted.toString();
+    editModal.classList.add('active');
+}
+
+
 
         // Close Edit Modal
         function closeModal() {
@@ -220,10 +225,11 @@
         }
 
       // Handle Edit Form Submission
-document.getElementById('editForm').addEventListener('submit', (e) => {
+      document.getElementById('editForm').addEventListener('submit', (e) => {
     e.preventDefault();
-    const offermade = document.getElementById('offermade').checked;  // Use .checked for toggle inputs
-    const offerposted = document.getElementById('offerposted').checked;  // Use .checked for toggle inputs
+    
+    const offermade = document.getElementById('offermade').value === "true"; // Get value properly
+    const offerposted = document.getElementById('offerposted').value === "true";
 
     // API call to save the data
     fetch(`https://fieldteam.localite.services/api/editOfferData/${currentEditingId}`, {
@@ -244,14 +250,9 @@ document.getElementById('editForm').addEventListener('submit', (e) => {
 
                 // Update the UI directly
                 const updatedCard = document.querySelector(`[data-id="${currentEditingId}"]`);
-                updatedCard.querySelector('.offermade').textContent = `Offer Creative Made: ${offermade ? 'Yes' : 'No'}`;
-                updatedCard.querySelector('.offerposted').textContent = `Offer Creative Posted: ${offerposted ? 'Yes' : 'No'}`;
+                updatedCard.querySelector('.offermade').innerHTML = `<strong>Offer Creative Made:</strong> ${offermade ? 'Yes' : 'No'}`;
+                updatedCard.querySelector('.offerposted').innerHTML = `<strong>Offer Creative Posted:</strong> ${offerposted ? 'Yes' : 'No'}`;
 
-                // Update the toggle button states
-                updatedCard.querySelector('.offermade-toggle').checked = offermade;
-                updatedCard.querySelector('.offerposted-toggle').checked = offerposted;
-
-                // Optionally, show a success message to the user
                 alert('Offer updated successfully!');
             }
         } else {
@@ -264,6 +265,7 @@ document.getElementById('editForm').addEventListener('submit', (e) => {
         alert('An error occurred while updating the offer.');
     });
 });
+
 
     </script>
 </body>
