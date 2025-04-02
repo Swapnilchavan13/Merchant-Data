@@ -107,7 +107,8 @@
                 <tr>
                     <th>Person Name</th>
                     <th>Business Name</th>
-                    <th>Business Type</th>
+                    <th>Category</th>
+                    <th>SubCategory</th>
                     <th>Address</th>
                     <th>Location</th>
                     <th>Operation Hours</th>
@@ -190,7 +191,7 @@
     
         // Populate Business Type Filter
         const populateBusinessTypeFilter = (merchants) => {
-            const businessTypes = [...new Set(merchants.map(m => m.businessType).filter(Boolean))];
+            const businessTypes = [...new Set(merchants.map(m => m.category).filter(Boolean))];
             businessTypes.forEach(type => {
                 const option = document.createElement('option');
                 option.value = type;
@@ -211,7 +212,7 @@
             }
     
             if (selectedBusinessType !== "all") {
-                filteredMerchants = filteredMerchants.filter(m => m.businessType === selectedBusinessType);
+                filteredMerchants = filteredMerchants.filter(m => m.category === selectedBusinessType);
             }
     
             if (filteredMerchants.length > 0) {
@@ -252,7 +253,9 @@
                 row.innerHTML = `
                     <td>${merchant.personName} ${merchant.lastName}</td>
                     <td>${merchant.businessName}</td>
-                    <td>${merchant.businessType}</td>
+                    <td>${merchant.category}</td>
+                    <td>${merchant.subCategory}</td>
+
                     <td>${merchant.businessAddress}</td>
                     <td>
                         <a href=${merchant.specificRequirements} target="_blank" rel="noopener noreferrer">
