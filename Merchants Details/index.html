@@ -528,33 +528,35 @@ function showAllBrandEntries(brandName) {
                     .catch(error => console.error("Error fetching marketing data:", error));
             }
 
-            // Fetch & show offers data
             function fetchOffersData(mainid) {
-                fetch(`https://fieldteam.localite.services/api/getOfferDataByMainId/${mainid}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.length > 0) {
-                            data.forEach(offer => {
-                                offersDetails.innerHTML = 
-                                offersDetails.innerHTML += `
-                                <div>
-                                    <p><strong>${offer.title}</strong></p>
-                                    <p><strong>Headline:</strong> ${offer.headline}</p>
-                                    <p><strong>Price:</strong> ${offer.price}</p>
-                                    <p><strong>Discount:</strong> ${offer.discountedPercentage}%</p>
-                                    <p><strong>Area:</strong> ${offer.area}, ${offer.city}</p>
-                                    <div class="images-container">
-                                        ${offer.image1 ? `<img src="https://fieldteam.localite.services/api/${offer.image1}" width="250" alt="Offer Image">` : ""}
-                                    </div>
-                                    </div>
-                                `;
-                            });
-                        } else {
-                            offersDetails.innerHTML = "<h3>No offers available</h3>";
-                        }
-                    })
-                    .catch(error => console.error("Error fetching offers data:", error));
+    fetch(`https://fieldteam.localite.services/api/getOfferDataByMainId/${mainid}`)
+        .then(response => response.json())
+        .then(data => {
+            // Clear old data first
+            offersDetails.innerHTML = "";
+
+            if (data.length > 0) {
+                data.forEach(offer => {
+                    offersDetails.innerHTML += `
+                        <div class="offer-card">
+                            <p><strong>${offer.title}</strong></p>
+                            <p><strong>Headline:</strong> ${offer.headline}</p>
+                            <p><strong>Price:</strong> ${offer.price}</p>
+                            <p><strong>Discount:</strong> ${offer.discountedPercentage}%</p>
+                            <p><strong>Area:</strong> ${offer.area}, ${offer.city}</p>
+                            <div class="images-container">
+                                ${offer.image1 ? `<img src="https://fieldteam.localite.services/api/${offer.image1}" width="250" alt="Offer Image">` : ""}
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                offersDetails.innerHTML = "<h3>No offers available</h3>";
             }
+        })
+        .catch(error => console.error("Error fetching offers data:", error));
+}
+
 
             searchInput.addEventListener("input", () => {
                 const query = searchInput.value.toLowerCase();
