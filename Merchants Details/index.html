@@ -318,10 +318,10 @@
 
     <div class="brandSearchBox">
         <input type="text" id="brandSearchInput" placeholder="Type brand name..." />
-        <div id="loader" class="loader">
+        <!-- <div id="loader" class="loader">
             <span class="spinner"></span>
             <p>Loading Data...</p>
-          </div>
+          </div> -->
         <div id="brandSuggestions" class="brandSuggestions"></div>
       </div>
       
@@ -329,81 +329,69 @@
 
     <script>
 
+const apiUrl = 'https://jbyy0iih41.execute-api.ap-south-1.amazonaws.com/prod/api/catalouge/catalogue-products';
+    let allProducts = [];
 
-const apiUrl1  = 'https://hc29cfp8vj.execute-api.ap-south-1.amazonaws.com/prod/api/post?type=PRODUCT&page=&limit=1';
-var num=300
+    fetch(apiUrl)
+      .then(res => res.json())
+      .then(data => {
+        allProducts = data.products.data || [];
+        console.log('Fetched products:', allProducts);
+      })
+      .catch(err => console.error('API Error:', err));
 
-fetch(apiUrl1, {
-  headers: {
-    'Accept': 'application/json, text/plain, */*',
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InN1cGVyYWRtaW5AZ21haWwuY29tIiwiaWQiOiI2NjNmYTdmZWZmMTVmYTk3MDI3OGM3MmMiLCJyb2xlcyI6WyJTVVBFUi1BRE1JTiIsIkNPTlRFTlQtQURNSU4iXSwidXNlcm5hbWUiOiJUZWFtIExvY2FsaXRlIiwiaWF0IjoxNzQ0MDExNjM1LCJleHAiOjE3NDY2MDM2MzV9.BxAPsf2i0e-HLKSTkMCIyyOEAWlIAEXmqcpcX_dyGTs',
-    'Referer': 'https://d1sgimdrx958x1.cloudfront.net/'
-  }
-})
-.then(res => res.json())
-.then(data => {
-  num = data.totalCount || 300;
-  console.log(num)
-})
-.catch(err => console.error('API Error:', err));
+    const input = document.getElementById('brandSearchInput');
+    const suggestionBox = document.getElementById('brandSuggestions');
+    const resultList = document.getElementById('brandResultList');
 
-const apiUrl = `https://hc29cfp8vj.execute-api.ap-south-1.amazonaws.com/prod/api/post?type=PRODUCT&page=&limit=${num}`;
-
-let allProducts = [];
-
-fetch(apiUrl, {
-  headers: {
-    'Accept': 'application/json, text/plain, */*',
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InN1cGVyYWRtaW5AZ21haWwuY29tIiwiaWQiOiI2NjNmYTdmZWZmMTVmYTk3MDI3OGM3MmMiLCJyb2xlcyI6WyJTVVBFUi1BRE1JTiIsIkNPTlRFTlQtQURNSU4iXSwidXNlcm5hbWUiOiJUZWFtIExvY2FsaXRlIiwiaWF0IjoxNzQ0MDExNjM1LCJleHAiOjE3NDY2MDM2MzV9.BxAPsf2i0e-HLKSTkMCIyyOEAWlIAEXmqcpcX_dyGTs',
-    'Referer': 'https://d1sgimdrx958x1.cloudfront.net/'
-  }
-})
-.then(res => res.json())
-.then(data => {
-  allProducts = data.products;
-  console.log(allProducts)
-  document.getElementById('loader').style.display = 'none'; // hide loader
-
-})
-.catch(err => console.error('API Error:', err));
-
-const input = document.getElementById('brandSearchInput');
-const suggestionBox = document.getElementById('brandSuggestions');
-const resultList = document.getElementById('brandResultList');
-
-input.addEventListener('input', () => {
-  const value = input.value.toLowerCase().trim();
-  suggestionBox.innerHTML = '';
-  resultList.innerHTML = '';
-
-  if (value.length === 0) {
-    suggestionBox.style.display = 'none';
-    return;
-  }
-
-  const uniqueBrands = [...new Set(allProducts.map(p => p.brandName).filter(Boolean))];
-  const filteredBrands = uniqueBrands.filter(b => b.toLowerCase().includes(value));
-
-  if (filteredBrands.length === 0) {
-    suggestionBox.style.display = 'none';
-    return;
-  }
-
-  suggestionBox.style.display = 'block';
-
-  filteredBrands.forEach(brand => {
-    const div = document.createElement('div');
-    div.className = 'brandSuggestionItem';
-    div.textContent = brand;
-    div.addEventListener('click', () => {
-      input.value = brand;
+    input.addEventListener('input', () => {
+      const value = input.value.toLowerCase().trim();
       suggestionBox.innerHTML = '';
-      suggestionBox.style.display = 'none';
-      showAllBrandEntries(brand);
+      resultList.innerHTML = '';
+
+      if (value.length === 0) {
+        suggestionBox.style.display = 'none';
+        return;
+      }
+
+      const uniqueBrands = [...new Set(allProducts.map(p => p.brandName).filter(Boolean))];
+      const filteredBrands = uniqueBrands.filter(b => b.toLowerCase().includes(value));
+
+      if (filteredBrands.length === 0) {
+        suggestionBox.style.display = 'none';
+        return;
+      }
+
+      suggestionBox.style.display = 'block';
+
+      filteredBrands.forEach(brand => {
+        const div = document.createElement('div');
+        div.className = 'brandSuggestionItem';
+        div.textContent = brand;
+        div.addEventListener('click', () => {
+          input.value = brand;
+          suggestionBox.innerHTML = '';
+          suggestionBox.style.display = 'none';
+          showAllBrandEntries(brand);
+        });
+        suggestionBox.appendChild(div);
+      });
     });
-    suggestionBox.appendChild(div);
-  });
-});
+
+    function showAllBrandEntries(brandName) {
+      resultList.innerHTML = '';
+      const entries = allProducts.filter(p => p.brandName === brandName);
+      if (entries.length === 0) {
+        resultList.innerHTML = '<li>No products found for this brand.</li>';
+        return;
+      }
+
+      entries.forEach(entry => {
+        const li = document.createElement('li');
+        li.textContent = `${entry.productName || 'Unnamed Product'} (${entry.brandName})`;
+        resultList.appendChild(li);
+      });
+    }
 
 function showAllBrandEntries(brandName) {
   const matchedItems = allProducts.filter(item => item.brandName === brandName);

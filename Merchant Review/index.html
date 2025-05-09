@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Merchant Feedback</title>
+  <style>
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    select {
+      padding: 5px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Merchant Feedback</h2>
+
+  <label for="enrolledByFilter">Filter by Enrolled By:</label>
+  <select id="enrolledByFilter">
+    <option value="all">All</option>
+  </select>
+
+  <p>Total Entries: <span id="entryCount">0</span></p>
+
+  <table id="feedbackTable">
+    <thead>
+      <tr>
+        <th>Merchant Name</th>
+        <th>Contact Person</th>
+        <th>Enrolled On</th>
+        <th>Enrolled By</th>
+        <th>Store Rating</th>
+        <th>Given Catalogue</th>
+        <th>No Catalogue Reason</th>
+        <th>Used App</th>
+        <th>App Rating</th>
+        <th>Subscription Decision</th>
+        <th>Comments</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const apiUrl = 'https://fieldteam.localite.services/api/getmerchantfeedback';
+    const filterDropdown = document.getElementById('enrolledByFilter');
+    const tableBody = document.querySelector('#feedbackTable tbody');
+    const entryCount = document.getElementById('entryCount');
+    let feedbackData = [];
+
+    fetch(apiUrl)
+      .then(res => res.json())
+      .then(data => {
+        feedbackData = data;
+        const enrolledBySet = new Set(data.map(item => item.enrolledBy));
+        
+        enrolledBySet.forEach(name => {
+          const option = document.createElement('option');
+          option.value = name;
+          option.textContent = name;
+          filterDropdown.appendChild(option);
+        });
+
+        renderTable(data);
+      });
+
+    filterDropdown.addEventListener('change', () => {
+      const selected = filterDropdown.value;
+      const filtered = selected === 'all' ? feedbackData : feedbackData.filter(item => item.enrolledBy === selected);
+      renderTable(filtered);
+    });
+
+    function renderTable(data) {
+      tableBody.innerHTML = '';
+      data.forEach(entry => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${entry.merchantName}</td>
+          <td>${entry.contactPerson}</td>
+          <td>${new Date(entry.enrolledOn).toLocaleDateString()}</td>
+          <td>${entry.enrolledBy}</td>
+          <td>${entry.storeRating}</td>
+          <td>${entry.givenCatalogue}</td>
+          <td>${entry.noCatalogueReason || '-'}</td>
+          <td>${entry.usedApp}</td>
+          <td>${entry.appRating}</td>
+          <td>${entry.subscriptionDecision}</td>
+          <td>${entry.comments.replace(/\n/g, '<br/>')}</td>
+        `;
+        tableBody.appendChild(row);
+      });
+      entryCount.textContent = data.length;
+    }
+  </script>
+</body>
+</html>

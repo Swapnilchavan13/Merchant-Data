@@ -192,7 +192,7 @@
         // Populate the date dropdown with the latest 10 unique dates
 function populateDateDropdown() {
     const uniqueDates = [...new Set(merchants.map(merchant => new Date(merchant.updatedAt).toLocaleDateString('en-IN')))];
-    const latestDates = uniqueDates.slice(0, 10);
+    const latestDates = uniqueDates.slice(0, 90);
     
     dateSelect.innerHTML = '<option value="">-- Select a Date --</option>';
     latestDates.forEach(date => {
