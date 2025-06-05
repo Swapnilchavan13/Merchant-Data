@@ -1,0 +1,204 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Marketing Data</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    #data-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .card {
+      border: 1px solid #ccc;
+      padding: 15px;
+      border-radius: 8px;
+      background-color: #f9f9f9;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .card h2 {
+      font-size: 1.2em;
+      margin-top: 0;
+    }
+
+    .card p {
+      margin: 6px 0;
+      font-size: 0.9em;
+    }
+
+    a {
+      color: #007BFF;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Marketing Data</h1>
+  <div id="data-container">Loading...</div>
+
+  <script>
+    fetch('https://fieldteam.localite.services/api/getmarketingdata')
+      .then(response => response.json())
+      .then(result => {
+        const container = document.getElementById('data-container');
+        container.innerHTML = '';
+
+        if (result.success) {
+          result.data.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'card';
+
+            card.innerHTML = `
+              <h2>${item.businessName}</h2>
+              <p><strong>Google Review Score:</strong> ${item.googleReviewScore}</p>
+              <p><strong>Instagram:</strong> <a href="${item.instaPageLink}" target="_blank">${item.instaPageLink}</a></p>
+              <p><strong>Insta Posts:</strong> ${item.instaPosts}</p>
+              <p><strong>Insta Followers:</strong> ${item.instaFollowers}</p>
+              <p><strong>Insta Score:</strong> ${item.instaScore}</p>
+              <p><strong>YouTube:</strong> <a href="${item.youtubePageLink}" target="_blank">${item.youtubePageLink}</a></p>
+              <p><strong>YouTube Videos:</strong> ${item.youtubeVideos}</p>
+              <p><strong>YouTube Views:</strong> ${item.youtubeViews}</p>
+              <p><strong>WhatsApp Business:</strong> ${item.whatsappBusiness}</p>
+              <p><strong>Turnover:</strong> ${item.turnover}</p>
+              <p><strong>Customer Base:</strong> ${item.customerBase}</p>
+              <p><strong>Intested YES Or No:</strong> ${item.interested}</p>
+              <p><strong>Customer Base:</strong> ${item.customerBase}</p>
+              <p><strong>Added By:</strong> ${item.contactPerson}</p>
+
+              <p><strong>Created At:</strong> ${new Date(item.createdAt).toLocaleDateString()}</p>
+            `;
+
+            container.appendChild(card);
+          });
+        } else {
+          container.innerText = 'Failed to load data';
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('data-container').innerText = 'Error fetching data';
+      });
+  </script>
+
+</body>
+</html> -->
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mobile Number Entry Count</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    #result {
+      margin-top: 30px;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .entry {
+      padding: 10px;
+      border-bottom: 1px solid #ccc;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Mobile Number Entry Counts</h1>
+  <div id="result">Loading...</div>
+
+  <script>
+    async function fetchMarketingData() {
+      try {
+        const marketingRes = await fetch('https://fieldteam.localite.services/api/getmarketingdata');
+        const marketingJson = await marketingRes.json();
+
+        if (!marketingJson.success) {
+          document.getElementById('result').innerText = 'Failed to load marketing data.';
+          return;
+        }
+
+        const marketingData = marketingJson.data;
+        const mobileNumberCounts = {};
+
+        // Fetch merchant data in parallel using mainid
+        const merchantFetches = marketingData.map(async (item) => {
+          const mainid = item.mainid;
+
+          try {
+            const res = await fetch(`https://fieldteam.localite.services/api/getsinglemerchantsdata/${mainid}`);
+            const merchant = await res.json();
+
+            const mobileNumber = merchant.mobileNumber;
+
+            if (mobileNumber) {
+              mobileNumberCounts[mobileNumber] = (mobileNumberCounts[mobileNumber] || 0) + 1;
+            }
+          } catch (error) {
+            console.error(`Error fetching merchant data for mainid ${mainid}`, error);
+          }
+        });
+
+        // Wait for all fetches to complete
+        await Promise.all(merchantFetches);
+
+        // Display the results
+        const resultDiv = document.getElementById('result');
+        resultDiv.innerHTML = '';
+
+        if (Object.keys(mobileNumberCounts).length === 0) {
+          resultDiv.innerText = 'No mobile numbers found.';
+          return;
+        }
+
+        for (const [mobile, count] of Object.entries(mobileNumberCounts)) {
+          const entry = document.createElement('div');
+          entry.className = 'entry';
+          entry.innerText = `${mobile}: ${count} entr${count === 1 ? 'y' : 'ies'}`;
+          resultDiv.appendChild(entry);
+        }
+
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        document.getElementById('result').innerText = 'Something went wrong while fetching data.';
+      }
+    }
+
+    // Call the function
+    fetchMarketingData();
+  </script>
+
+</body>
+</html>
+
